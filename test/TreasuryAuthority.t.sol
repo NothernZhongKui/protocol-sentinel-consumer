@@ -56,7 +56,16 @@ contract TreasuryAuthorityTest is DirectComparisonCapture {
         _exportDirectComparison(scenarioId, spec, beforeStage, afterStage, result);
     }
 
+    /// @dev CI producer: capture observations without asserting a verdict.
+    /// The trusted Sentinel gate decides PASS, BLOCK or REVIEW.
     function test_SafeUpgradePreservesRestriction() public {
+        ConsumerTreasuryV2Safe next = new ConsumerTreasuryV2Safe();
+
+        _compareAgainst(address(next));
+    }
+
+    /// @dev Example assertions are independent of the CI producer.
+    function test_ExpectSafeUpgradeRestriction() public {
         ConsumerTreasuryV2Safe next = new ConsumerTreasuryV2Safe();
 
         DirectComparisonResult memory result = _compareAgainst(address(next));

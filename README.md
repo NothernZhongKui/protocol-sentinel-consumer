@@ -9,6 +9,15 @@ using consumer-owned Treasury contracts and tests.
 The portable runner produces Evidence and independently
 replays classification and compiler outputs.
 
+The CI producer records observed behavior without
+asserting a safe verdict. The separate
+`test_ExpectSafeUpgradeRestriction` test asserts the
+safe fixture's expected result.
+
+This allows a successful producer execution to report
+a real authority regression through Evidence and a
+trusted CI `BLOCK` decision.
+
 The CI policy distinguishes:
 
 - STILL_SATISFIED → PASS
