@@ -87,4 +87,93 @@ jobs:
             python -B "$runner" \
               --project "$project" \
               --config sentinel-safe.toml \
-              --trusted-policy "$policy"
+              --trusted-policy "$policy" 2>&1 | tee "$RUNNER_TEMP/sentinel-run.log"
+
+      - name: Summarize Sentinel decision
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - "$GITHUB_WORKSPACE/checkout/protocol-sentinel-consumer/artifacts/sentinel/runs/completed" "$GITHUB_STEP_SUMMARY" <<'SUMMARY_PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          root = Path(sys.argv[1])
+          summary = Path(sys.argv[2])
+
+          runs = sorted(
+              p for p in root.iterdir() if p.is_dir()
+          ) if root.is_dir() else []
+
+          lines = [
+              "## Protocol Sentinel — Authority Gate",
+              "",
+          ]
+
+          if len(runs) == 1:
+              folder = runs[0]
+
+              def read(name):
+                  return json.loads(
+                      (folder / name).read_text(encoding="utf-8")
+                  )
+
+              verification = read("verification.json")
+              gate = read("ci-gate.json")
+
+              assert verification["publication"] == "COMPLETED"
+              assert verification["classification_replay"] == "MATCH"
+              assert verification["schema"] == "VALID"
+              assert gate["verification"] == "FRESH_VERIFIED_DIRECT_EVIDENCE"
+              assert gate["decision"] in ("PASS", "BLOCK", "REVIEW")
+              assert len(gate["scenarios"]) == 1
+
+              scenario = gate["scenarios"][0]
+              assert scenario["verdict"] == verification["comparison"]
+
+              lines.extend([
+                  "| Scenario | Before | After | Verdict | Decision |",
+                  "| --- | --- | --- | --- | --- |",
+                  "| `{}` | `{}` | `{}` | `{}` | **{}** |".format(
+                      scenario["id"],
+                      verification["before"]["status"],
+                      verification["after"]["status"],
+                      verification["comparison"],
+                      gate["decision"],
+                  ),
+                  "",
+                  "**Reason:** `{}`".format(scenario["reason"]),
+                  "",
+                  "**Classification replay:** `MATCH`",
+                  "",
+                  "**Compiler replay:** `{}`".format(
+                      verification["build_replay"]
+                  ),
+                  "",
+                  "**Evidence:** available in this job's artifact.",
+              ])
+          else:
+              lines.extend([
+                  "**Result: technical failure or incomplete execution.**",
+                  "",
+                  "No uniquely completed verified Evidence was found.",
+                  "See the execution log and uploaded diagnostic artifact.",
+              ])
+
+          with summary.open("a", encoding="utf-8") as stream:
+              stream.write("\n".join(lines) + "\n")
+
+          print("PASS | Job Summary written")
+          SUMMARY_PY
+
+      - name: Upload Sentinel Evidence and diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: sentinel-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            checkout/protocol-sentinel-consumer/artifacts/sentinel/runs/completed/
+            ${{ runner.temp }}/sentinel-run.log
+          if-no-files-found: warn
+          retention-days: 7
