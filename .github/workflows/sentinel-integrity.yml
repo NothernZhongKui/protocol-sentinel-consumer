@@ -43,7 +43,11 @@ jobs:
 
           protected='^(\.github/workflows/|\.github/sentinel/|\.github/CODEOWNERS$|sentinel-(safe|unsafe)\.toml$|lib/protocol-sentinel$|\.gitmodules$|foundry\.toml$|foundry\.lock$)'
 
-          if printf '%s\n' "$files" | grep -E "$protected"; then
+          renamed_from="$(gh api --paginate \
+            --jq '.[] | select(.status == "renamed") | .previous_filename' \
+            "$endpoint/files?per_page=100")"
+
+          if printf '%s\n%s\n' "$files" "$renamed_from" | grep -E "$protected"; then
             echo "BLOCK | Protected Sentinel configuration changed"
             exit 1
           fi
