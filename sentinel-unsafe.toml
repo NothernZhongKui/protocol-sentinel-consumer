@@ -1,0 +1,11 @@
+[sentinel]
+config_version = "1"
+route = "DIRECT_EOA_UUPS"
+
+[producer]
+id = "treasury_unsafe"
+contract = "TreasuryAuthorityTest"
+test = "test_UnsafeUpgradeIntroducesViolation"
+source = "test/TreasuryAuthority.t.sol"
+fixture_id = "external-treasury-v1-unsafe-v2"
+scenario_id = "0x86917dbb645eece6a5a6f11fa636fdae5558fa7fd4ab12c07488142cbfbb39bf"
