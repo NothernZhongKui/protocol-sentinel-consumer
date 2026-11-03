@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.24;
 
-import {ComparativeAuthorityProbe} from "protocol-sentinel/ComparativeAuthorityProbe.sol";
+import {DirectComparisonCapture} from "protocol-sentinel/DirectComparisonCapture.sol";
 
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
@@ -12,7 +12,7 @@ import {
     ConsumerTreasuryCandidate
 } from "../src/ConsumerTreasury.sol";
 
-contract TreasuryAuthorityTest is ComparativeAuthorityProbe {
+contract TreasuryAuthorityTest is DirectComparisonCapture {
     address internal administrator;
     address internal settlementOperator;
 
@@ -30,22 +30,6 @@ contract TreasuryAuthorityTest is ComparativeAuthorityProbe {
         treasuryProxy = new ERC1967Proxy(address(initial), initialization);
     }
 
-    function _activeImplementation() internal view returns (address) {
-        return address(uint160(uint256(vm.load(address(treasuryProxy), ERC1967_IMPL_SLOT))));
-    }
-
-    function _observe(UpgradeCheck memory spec) internal returns (DirectStage memory stage) {
-        address active = _activeImplementation();
-
-        bytes memory callData = abi.encodeWithSignature("upgradeToAndCall(address,bytes)", spec.candidate, bytes(""));
-
-        Observation memory observation = _observeIsolatedCall(spec.actor, spec.target, callData, ERC1967_IMPL_SLOT);
-
-        stage = DirectStage({expectedActiveImplementation: active, observation: observation});
-
-        assertEq(_activeImplementation(), active, "Sentinel must restore implementation");
-    }
-
     function _compareAgainst(address nextImplementation) internal returns (DirectComparisonResult memory result) {
         ConsumerTreasuryCandidate candidate = new ConsumerTreasuryCandidate();
 
@@ -57,15 +41,19 @@ contract TreasuryAuthorityTest is ComparativeAuthorityProbe {
             policy: UpgradePolicy.NO_IMPLEMENTATION_REPLACEMENT
         });
 
-        DirectStage memory beforeStage = _observe(spec);
+        DirectStage memory beforeStage = _observeDirectStage(spec);
 
         vm.prank(administrator, administrator);
 
         ConsumerTreasuryV1(address(treasuryProxy)).upgradeToAndCall(nextImplementation, bytes(""));
 
-        DirectStage memory afterStage = _observe(spec);
+        DirectStage memory afterStage = _observeDirectStage(spec);
 
-        result = _compareDirectUpgrade(keccak256("external-treasury-upgrade-authority"), spec, beforeStage, afterStage);
+        bytes32 scenarioId = keccak256("external-treasury-upgrade-authority");
+
+        result = _compareDirectUpgrade(scenarioId, spec, beforeStage, afterStage);
+
+        _exportDirectComparison(scenarioId, spec, beforeStage, afterStage, result);
     }
 
     function test_SafeUpgradePreservesRestriction() public {
