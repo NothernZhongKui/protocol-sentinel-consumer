@@ -1,0 +1,13 @@
+[policy]
+version = "1"
+repository = "NothernZhongKui/protocol-sentinel-consumer"
+workflow = ".github/workflows/sentinel-gate.yml"
+
+[[required_scenario]]
+id = "treasury_safe"
+scenario_id = "0x86917dbb645eece6a5a6f11fa636fdae5558fa7fd4ab12c07488142cbfbb39bf"
+route = "DIRECT_EOA_UUPS"
+source = "test/TreasuryAuthority.t.sol"
+contract = "TreasuryAuthorityTest"
+test = "test_SafeUpgradePreservesRestriction"
+fixture_id = "external-treasury-v1-safe-v2"
