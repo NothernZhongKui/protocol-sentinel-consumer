@@ -41,6 +41,13 @@ contract ConsumerTreasuryV2Safe is ConsumerTreasuryV1 {
     function version() external pure override returns (uint256) {
         return 2;
     }
+
+    // Negative control only: unauthorized upgrade permission.
+    function _authorizeUpgrade(address) internal view override {
+        if (msg.sender != treasuryAdmin && msg.sender != settlementOperator) {
+            revert NotTreasuryAdmin(msg.sender);
+        }
+    }
 }
 
 contract ConsumerTreasuryV2Unsafe is ConsumerTreasuryV1 {
