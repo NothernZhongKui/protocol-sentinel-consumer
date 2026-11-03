@@ -1,0 +1,51 @@
+name: Sentinel Workflow Integrity
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  integrity:
+    name: Sentinel Workflow Integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Verify protected files unchanged
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+
+          endpoint="repos/$REPO/pulls/$PR_NUMBER"
+
+          expected="$(gh api "$endpoint" --jq .changed_files)"
+
+          files="$(gh api --paginate \
+            --jq '.[].filename' \
+            "$endpoint/files?per_page=100")"
+
+          count="$(printf '%s\n' "$files" |
+            awk 'NF' | wc -l | tr -d ' ')"
+
+          if [ "$count" -ne "$expected" ]; then
+            echo "BLOCK | Incomplete PR file inventory"
+            exit 1
+          fi
+
+          protected='^(\.github/workflows/|\.github/sentinel/|\.github/CODEOWNERS$|sentinel-(safe|unsafe)\.toml$|lib/protocol-sentinel$|\.gitmodules$|foundry\.toml$|foundry\.lock$)'
+
+          if printf '%s\n' "$files" | grep -E "$protected"; then
+            echo "BLOCK | Protected Sentinel configuration changed"
+            exit 1
+          fi
+
+          echo "PASS | Trusted workflow and policy unchanged"
