@@ -1,0 +1,8 @@
+/.github/CODEOWNERS @NothernZhongKui
+/.github/workflows/ @NothernZhongKui
+/.github/sentinel/ @NothernZhongKui
+/sentinel-safe.toml @NothernZhongKui
+/sentinel-unsafe.toml @NothernZhongKui
+/.gitmodules @NothernZhongKui
+/foundry.toml @NothernZhongKui
+/foundry.lock @NothernZhongKui
