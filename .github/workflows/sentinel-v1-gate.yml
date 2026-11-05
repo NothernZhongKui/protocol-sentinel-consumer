@@ -69,6 +69,8 @@ jobs:
         env:
           SOLC_PATH: ${{ github.workspace }}/../_temp/unused
         run: |
+          # Preserve BLOCK/REVIEW exit before final enforcement.
+          set +e
           set -uo pipefail
           SOLC_PATH="$HOME/.svm/0.8.24/solc-0.8.24"
           if [[ "$SOLC_PATH" != /* || ! -x "$SOLC_PATH" ]]; then
