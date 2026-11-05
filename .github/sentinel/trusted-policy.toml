@@ -1,7 +1,12 @@
+# Protected base for Protocol Sentinel v1 pilot. Do not take these values from PR code.
 [policy]
-version = "1"
+version = "2"
 repository = "NothernZhongKui/protocol-sentinel-consumer"
-workflow = ".github/workflows/sentinel-gate.yml"
+consumer_repository = "NothernZhongKui/protocol-sentinel-consumer"
+consumer_commit = "0000000000000000000000000000000000000000"
+workspace = "."
+workflow = ".github/workflows/sentinel-v1-gate.yml"
+tool_commit = "c3f7b556626dafe11a9de284dcc87b82a825b98a"
 
 [[required_scenario]]
 id = "treasury_safe"

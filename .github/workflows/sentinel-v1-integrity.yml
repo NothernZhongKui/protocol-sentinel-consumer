@@ -1,0 +1,34 @@
+name: Sentinel v1 Policy Integrity
+on:
+  pull_request_target:
+    branches: [pilot/v1-trusted-ci-base]
+    types: [opened, reopened, synchronize, ready_for_review]
+permissions:
+  contents: read
+  pull-requests: read
+jobs:
+  integrity:
+    name: Sentinel v1 Policy Integrity
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Protect workflow, policy, dependency and producer changes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          endpoint="repos/$REPO/pulls/$PR_NUMBER"
+          expected="$(gh api "$endpoint" --jq .changed_files)"
+          files="$(gh api --paginate --jq '.[].filename' "$endpoint/files?per_page=100")"
+          renames="$(gh api --paginate --jq '.[] | select(.status == "renamed") | .previous_filename' "$endpoint/files?per_page=100")"
+          count="$(printf '%s\n' "$files" | awk 'NF' | wc -l | tr -d ' ')"
+          test "$count" -eq "$expected"
+          protected='^(\.github/workflows/|\.github/sentinel/|\.github/CODEOWNERS$|sentinel\.toml$|lib/protocol-sentinel$|\.gitmodules$|foundry\.toml$|foundry\.lock$|test/TreasuryAuthority\.t\.sol$|src/ConsumerTreasury\.sol$)'
+          if printf '%s\n%s\n' "$files" "$renames" | grep -E "$protected"; then
+            echo "BLOCK | Protected v1 policy, workflow, dependency or producer changed"
+            exit 1
+          fi
+          echo "PASS | Protected v1 files unchanged"

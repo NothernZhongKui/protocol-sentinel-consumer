@@ -6,3 +6,6 @@
 /.gitmodules @NothernZhongKui
 /foundry.toml @NothernZhongKui
 /foundry.lock @NothernZhongKui
+/sentinel.toml @NothernZhongKui
+/test/TreasuryAuthority.t.sol @NothernZhongKui
+/src/ConsumerTreasury.sol @NothernZhongKui
