@@ -59,7 +59,9 @@ contract TreasuryAuthorityTest is DirectComparisonCapture {
     /// @dev CI producer: capture observations without asserting a verdict.
     /// The trusted Sentinel gate decides PASS, BLOCK or REVIEW.
     function test_SafeUpgradePreservesRestriction() public {
-        ConsumerTreasuryV2Safe next = new ConsumerTreasuryV2Safe();
+        // Synthetic acceptance-only regression: authorized upgrade now grants
+        // settlement operator implementation-upgrade power.
+        ConsumerTreasuryV2Unsafe next = new ConsumerTreasuryV2Unsafe();
 
         _compareAgainst(address(next));
     }
