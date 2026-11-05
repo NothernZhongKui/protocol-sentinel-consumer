@@ -15,3 +15,16 @@ For acceptance, open unmerged PRs **against this pilot base**:
 - Failure/stale Evidence: stop the current producer, expect VERIFICATION FAILED and failure.
 
 A required status name or green Actions job is not merge enforcement. Verify branch rules, owner-review requirements, and bypass resistance independently; no such claim is made by this branch. Never merge synthetic faulty or bypass PRs.
+
+## Observed GitHub Actions evidence (2026-11-05 UTC)
+
+| Candidate | Workflow run | Observation |
+| --- | --- | --- |
+| [Safe PR #10](https://github.com/NothernZhongKui/protocol-sentinel-consumer/pull/10) | [42061646180](https://github.com/NothernZhongKui/protocol-sentinel-consumer/actions/runs/42061646180) | Fresh producer, Git source attestation, 42 contracts independently replayed, STILL_SATISFIED, MATCH, PASS (exit 0) |
+| [Synthetic faulty PR #11](https://github.com/NothernZhongKui/protocol-sentinel-consumer/pull/11) | [42061812476](https://github.com/NothernZhongKui/protocol-sentinel-consumer/actions/runs/42061812476) | Fresh producer, Git source attestation, 42 contracts independently replayed, CHANGED_TO_VIOLATION, MATCH, BLOCK (exit 2) |
+| [Failed producer PR #12](https://github.com/NothernZhongKui/protocol-sentinel-consumer/pull/12) | [42062309488](https://github.com/NothernZhongKui/protocol-sentinel-consumer/actions/runs/42062309488) | Intentional producer revert, no completed Evidence, VERIFICATION FAILED, exit 2 |
+| [Gitlink substitution PR #13](https://github.com/NothernZhongKui/protocol-sentinel-consumer/pull/13) | [42062438030](https://github.com/NothernZhongKui/protocol-sentinel-consumer/actions/runs/42062438030) | Preflight rejected substituted v0.5 tool before candidate Python, exit 2 |
+
+**Not yet proven:** repository merge prevention under required status checks, workflow body substitution, CODEOWNERS/owner approval enforcement, or an unassisted external developer onboarding. The `pull_request_target` integrity workflow introduced only on this non-default pilot base is **not** evidence of an active protected integrity check: GitHub requires that event's workflow file to be present on the default branch. This pilot is therefore **not** a protected-merge acceptance. Do not merge the faulty or bypass PRs.
+
+For a meaningful enforcement acceptance, install the integrity policy on a protected/default-branch-controlled workflow or centrally managed required workflow; configure rulesets with required gate and integrity checks, restricted bypass permissions and required CODEOWNERS approval for producer/fixture changes. Then exercise an ordinary contributor PR that replaces the workflow job with `exit 0`, as well as a tool-pin mutation, and confirm GitHub rejects merge. Record the exact ruleset and check contexts.
