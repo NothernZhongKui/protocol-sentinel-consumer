@@ -1,0 +1,60 @@
+# Default-branch-owned control for the isolated v1 Treasury pilot.
+# Runs no candidate checkout or PR-controlled scripts.
+name: Sentinel v1 Policy Integrity
+
+on:
+  pull_request_target:
+    branches: [pilot/v1-trusted-ci-base]
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  integrity:
+    name: Sentinel v1 Policy Integrity
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Reject candidate changes to protected v1 inputs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EVENT_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          endpoint="repos/$REPO/pulls/$PR_NUMBER"
+          actual_head="$(gh api "$endpoint" --jq '.head.sha')"
+          if [[ "$actual_head" != "$EVENT_HEAD_SHA" ]]; then
+            echo "BLOCK | PR head moved since this integrity event"
+            exit 1
+          fi
+
+          expected="$(gh api "$endpoint" --jq '.changed_files')"
+          files="$(gh api --paginate --jq '.[].filename' "$endpoint/files?per_page=100")"
+          renamed_from="$(gh api --paginate --jq '.[] | select(.status == "renamed") | .previous_filename' "$endpoint/files?per_page=100")"
+          count="$(printf '%s\n' "$files" | awk 'NF' | wc -l | tr -d ' ')"
+          if [[ ! "$expected" =~ ^[0-9]+$ || "$count" -ne "$expected" ]]; then
+            echo "BLOCK | Incomplete PR file inventory"
+            exit 1
+          fi
+
+          # Conservative ownership boundary: an unchanged producer filename is
+          # not sufficient if a dependency, helper or workflow is weakened.
+          protected='^(\.github/|\.gitmodules$|\.gitignore$|foundry\.(toml|lock)$|sentinel\.toml$|sentinel-(safe|unsafe)\.toml$|lib/|src/|test/)'
+          if printf '%s\n%s\n' "$files" "$renamed_from" | grep -E "$protected"; then
+            echo "BLOCK | Protected v1 workflow, dependency, producer or policy changed"
+            exit 1
+          fi
+
+          final_head="$(gh api "$endpoint" --jq '.head.sha')"
+          if [[ "$final_head" != "$EVENT_HEAD_SHA" ]]; then
+            echo "BLOCK | PR head moved during integrity inspection"
+            exit 1
+          fi
+
+          echo "PASS | v1 protected files unchanged for $EVENT_HEAD_SHA"
